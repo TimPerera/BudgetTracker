@@ -1,0 +1,6 @@
+*.csv
+*.xlsx
+venv
+.env.example
+*.yaml
+
