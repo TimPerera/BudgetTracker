@@ -3,79 +3,15 @@ import openpyxl
 import streamlit as st
 import yaml
 
-def load_saved_data():
-    with open('configs.yaml','r') as configs:
-        cfg = yaml.safe_load(configs)
-    return cfg
+
 cfg = load_saved_data()
 
 if 'categories' not in st.session_state:
     st.session_state.categories = cfg.get('categories', 'Unknown')
 
-def clean_desc(desc):
-    desc = desc.strip()
-    if '[IN]' in desc:
-        return 'Interest Charge'
-    if len(desc)==4:
-        return desc
-    else:
-        return desc[4:]
 
-def clean(file_paths):
-    accounts = cfg.get('accounts')
-    df_list = list()
-    for fpath in file_paths:
-        raw_df = pd.read_csv(fpath,skiprows=6, names=['Bank Card','Transaction Type','Date Posted', 'Transaction Amount','Description'])
-        if not raw_df.empty:
-            file_name = fpath[:-4] if isinstance(fpath, str) else fpath.name[:-4]
-            raw_df['Account Name'] = accounts.get(file_name, file_name)
-            raw_df['Description'] = raw_df['Description'].apply(clean_desc)
-            raw_df['Category'] = None
-            df_list.append(raw_df)
-    # Remove bad rows
-    raw_df = pd.concat(df_list)
-    raw_df = raw_df[~(raw_df['Bank Card']=='First Bank Card')]
-    raw_df.drop(labels='Bank Card',axis=1, inplace=True)
-    raw_df['Date Posted'] = pd.to_datetime(raw_df['Date Posted'],format='%Y%m%d').dt.date
-    raw_df['Transaction Amount'] = raw_df['Transaction Amount'].astype(float)
-    raw_df.reset_index(inplace=True)
-    # raw_df['Transaction Type Code'] = raw_df['Description'].apply(lambda x: x[1:3])
-    
-    return categorize_transactions(raw_df)
 
-def update_cfg(cfg):
-    with open('configs.yaml','w') as configs:
-        return yaml.dump(cfg, configs)
 
-def update_categories(category, keyword):
-    print(f'Attempting to update categories {category}:{keyword}')
-    if not keyword:
-        cfg['categories'][category] = []
-    else:
-        categories = cfg['categories']
-        
-        kw = keyword.strip().lower()
-        if not kw in categories.get(category,list()):
-            categories[category].append(kw)
-        else:
-            print('Something unexpected happened')
-    st.session_state.categories = cfg['categories']
-    update_cfg(cfg)
-
-def categorize_transactions(df):
-    for category, keywords in st.session_state.categories.items():
-        kws = [keyword.lower().strip() for keyword in keywords]
-        for idx, row in df.iterrows():
-            desc = row['Description'].lower().strip()
-            
-            if any([kw in desc for kw in kws]):
-                if idx == 3:
-                    print(desc, kws)
-                df.at[idx, 'Category'] = category
-            # else:
-            #     if 'msp/div' in desc:
-            #         print(f'Categories {desc}. Keywords found for category are {kws}')
-    return df
 
 def app(files=None):
     st.set_page_config(
