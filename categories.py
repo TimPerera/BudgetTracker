@@ -1,8 +1,8 @@
 # from main import session, cfg
-from utils import update_cfg
+from utils import update_cfg, logger
 
 def update_categories(category, keyword, session, cfg):
-    print(f'Attempting to update categories {category}:{keyword}')
+    
     if not keyword:
         cfg['categories'][category] = []
     else:
@@ -10,9 +10,8 @@ def update_categories(category, keyword, session, cfg):
         
         kw = keyword.strip().lower()
         if not kw in categories.get(category,list()):
+            logger.debug(f'Updating category {category}:{keyword}')
             categories[category].append(kw)
-        else:
-            print('Something unexpected happened')
     session.categories = cfg['categories']
     update_cfg(cfg)
 

@@ -1,8 +1,10 @@
 import pandas as pd
+import re
 
 import streamlit as st
 
 from categories import categorize_transactions, update_categories
+from utils import logger
 
 def render_data_tab(file_paths, cfg, session):
 
@@ -46,11 +48,14 @@ def load_data(file_paths, cfg, session):
     for fpath in file_paths:
         raw_df = pd.read_csv(fpath,skiprows=6, names=['Bank Card','Transaction Type','Date Posted', 'Transaction Amount','Description'])
         if not raw_df.empty:
-            file_name = fpath[:-4] if isinstance(fpath, str) else fpath.name[:-4]
-            raw_df['Account Name'] = accounts.get(file_name, file_name)
+            ac_num_name_pat = r'.*/(\d{4})\.csv'
+            match = re.search(ac_num_name_pat, fpath)
+            ac_name = int(match.group(1))
+            raw_df['Account Name'] = accounts.get(ac_name, 'Dunno')
             raw_df['Description'] = raw_df['Description'].apply(clean_desc)
             raw_df['Category'] = None
-            df_list.append(raw_df)
+            df_list.append(raw_df)  
+
     # Remove bad rows
     raw_df = pd.concat(df_list)
     raw_df = raw_df[~(raw_df['Bank Card']=='First Bank Card')]
