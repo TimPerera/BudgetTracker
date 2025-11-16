@@ -17,6 +17,7 @@ def app(file_paths=None):
 
     with data_tab:
         render_data_tab(file_paths, cfg, session)
+        
     with settings_tab:
         render_settings_tab(cfg, session)
     
