@@ -4,4 +4,4 @@ venv
 .env.example
 *.yaml
 
-__pycache__*
+*__pycache__*
