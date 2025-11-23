@@ -111,14 +111,22 @@ def render_modify_container(df, session):
 
         elif is_object_dtype(df[col]):
             col1, col2, _, _= st.columns(4) # My workaround to deal with very large widgets
+            
             pattern = None
             with col1:
+                exclude = st.checkbox('Exclude')
                 if col=='Description':
                     desc = st.text_input(label='Enter Description filter.')
-                    filtered_df = df[df[col].str.contains(desc,regex=True, case=False, na=False)]
+                    if exclude:
+                        filtered_df = df[~(df[col].str.contains(desc, regex=True, case=False, na=False))]
+                    else:
+                        filtered_df = df[df[col].str.contains(desc,regex=True, case=False, na=False)]
                 else:
                     choices = st.multiselect(f'Select {col} Options', options=df[col].unique())
                     if choices:
-                        filtered_df = df[df[col].isin(choices)]
+                        if exclude:
+                            filtered_df = df[~(df[col].isin(choices))]
+                        else:
+                            filtered_df = df[df[col].isin(choices)]
                     
     return filtered_df if not filtered_df.empty else df
