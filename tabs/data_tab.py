@@ -111,7 +111,6 @@ def render_modify_container(df, session):
 
         elif is_object_dtype(df[col]):
             col1, col2, _, _= st.columns(4) # My workaround to deal with very large widgets
-            
             pattern = None
             with col1:
                 exclude = st.checkbox('Exclude')
