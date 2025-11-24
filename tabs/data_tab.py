@@ -43,7 +43,7 @@ def render_data_tab(data, cfg, session):
         st.rerun()
     return data
 
-def load_data(file_paths, cfg, session):  
+def load_data(file_paths, cfg):  
     def clean_desc(desc):
         desc = desc.strip()
         if '[IN]' in desc:
@@ -51,7 +51,7 @@ def load_data(file_paths, cfg, session):
         if len(desc)==4:
             return desc
         else:
-            return desc[4:]  
+            return desc[4:]
     accounts = cfg.get('accounts')
     df_list = list()
     for fpath in file_paths:
@@ -74,7 +74,7 @@ def load_data(file_paths, cfg, session):
     raw_df.reset_index(inplace=True, drop=True)
     # raw_df['Transaction Type Code'] = raw_df['Description'].apply(lambda x: x[1:3])
     
-    return categorize_transactions(raw_df, session)
+    return categorize_transactions(raw_df, cfg)
 
 
 def render_modify_container(df, session):  
@@ -124,33 +124,8 @@ def render_modify_container(df, session):
                             filtered_df = df[~(df[col].isin(choices))]
                         else:
                             filtered_df = df[df[col].isin(choices)]             
-    return filtered_df if not filtered_df.empty else df
+    return filtered_df.reset_index(drop=True) if not filtered_df.empty else df
 
-def load_metrics(df):
-    # Check how this will be impacted by credit vs debit
-    metrics = dict()
-    if df.empty: 
-        logger.error('No data.')
-        return metrics
-    if 'categories' not in st.session_state.keys():
-        logger.warning('Categories are not defined. Limited analytics available.')
-    # Exclude Internal Transfers, Investment
-    exclusions = ['Internal Transfer','Investment']
 
-    income  = df[~(df['Category'].isin(exclusions)) & (df['Transaction Amount']>0)]['Transaction Amount'].sum()
-    expense  = df[~(df['Category'].isin(exclusions)) & (df['Transaction Amount']<0)]['Transaction Amount'].sum()
-    saving   = abs(df[df['Category']=='Investment']['Transaction Amount']).sum()
-    net      = income + expense
-    count    = len(df)
-
-    metrics = {
-        'income':   income, 
-        'expense':  abs(expense),
-        'saving':   saving, 
-        'net':      net, 
-        'count':    count
-    }
-    
-    return metrics
 
     

@@ -15,8 +15,8 @@ def update_categories(category, keyword, session, cfg):
     session.categories = cfg['categories']
     update_cfg(cfg)
 
-def categorize_transactions(df, session):
-    for category, keywords in session.categories.items():
+def categorize_transactions(df, cfg):
+    for category, keywords in cfg.get('categories', dict()).items():
         kws = [keyword.lower().strip() for keyword in keywords]
         for idx, row in df.iterrows():
             desc = row['Description'].lower().strip()

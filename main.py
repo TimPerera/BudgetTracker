@@ -1,8 +1,9 @@
 import streamlit as st
 
 from utils import load_saved_data
-from tabs.data_tab import render_data_tab, load_data, load_metrics
+from tabs.data_tab import render_data_tab, load_data
 from tabs.settings_tab import render_settings_tab
+from tabs.dash_tab import render_dash_tab
 
 cfg = load_saved_data()
 session = st.session_state
@@ -13,7 +14,7 @@ if 'categories' not in st.session_state:
 def app(file_paths=None):
     st.set_page_config(layout='wide')
     st.title('Budget Tracker')
-    session.data = load_data(file_paths, cfg, session)
+    session.data = load_data(file_paths, cfg)
     dash_tab, data_tab, settings_tab = st.tabs(['Dashboard','Data','Settings'])
         
     with data_tab:
@@ -23,23 +24,7 @@ def app(file_paths=None):
         render_settings_tab(cfg, session)
 
     with dash_tab:
-        income_col, expense_col, savings_col, net_col, num_transactions_col = st.columns(5)
-        metrics = load_metrics(session.data)
-        with income_col:
-            income = metrics.get('income','N/A')
-            st.metric('Total Income', f'${income:,.2f}')
-        with expense_col:
-            expense = metrics.get('expense','N/A')
-            st.metric('Total Expenses', f'${expense:,.2f}')
-        with savings_col:
-            saving = metrics.get('saving','N/A')
-            st.metric('Total Savings',f'${saving:,.2f}')
-        with net_col:
-            net = metrics.get('net','N/A')
-            st.metric('Net Income', f'${net:,.2f}')       
-        with num_transactions_col:
-            count = metrics.get('count','N/A')
-            st.metric('Total Transactions', f'{count:,}')
+        render_dash_tab(cfg, session)
 
 if __name__=='__main__':
     files = [
