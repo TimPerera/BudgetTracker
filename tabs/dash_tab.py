@@ -1,5 +1,6 @@
 from utils import logger
 import streamlit as st
+import plotly.express as px
 
 def render_dash_tab(cfg, session):
     income_col, expense_col, savings_col, net_col, num_transactions_col = st.columns(5)
@@ -21,8 +22,8 @@ def render_dash_tab(cfg, session):
         count = metrics.get('count','N/A')
         st.metric('Total Transactions', f'{count:,}')
 
-    # Load pie chart
-    df.groupby('Category')
+    # Load intereactive pie chart
+    render_piechart(df)
 
 def load_metrics(df):
     # Check how this will be impacted by credit vs debit
@@ -50,3 +51,28 @@ def load_metrics(df):
     }
     
     return metrics
+
+def render_piechart(df, cutoff=0.8):
+    dft = abs(df.groupby('Category')['Transaction Amount'].agg('sum')).reset_index(name='Total')
+    cdft = dft.copy() # consolidated df
+    cdft.sort_values(by='Total',ascending=False, inplace=True)
+    total= 0
+    gt = dft['Total'].sum()# grand total
+    for idx, row in cdft.iterrows():
+        lt = row['Total']
+        pct = lt/gt
+        cat = row['Category']
+        print(cat, total)
+        if total < cutoff:
+            total += pct
+        else:
+            cdft.at[idx, 'Category'] = 'Other'
+    pie_df = cdft.groupby('Category')['Total'].agg('sum').reset_index(name='Total')
+
+    fig = px.pie(pie_df, names=pie_df['Category'], values=pie_df['Total'])
+    fig.update_traces(
+        textposition = 'outside',
+        textinfo='label+percent'
+    )
+    fig.update_layout(showlegend=False)
+    st.plotly_chart(fig)
