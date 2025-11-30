@@ -121,7 +121,7 @@ def render_modify_container(df, session):
                     choices = st.multiselect(f'Select {col} Options', options=filtered_df[col].unique(), key=f'object_filt-{col}')
                     if choices:
                         if exclude:
-                            print(f"Excluding {', '.join(choices)}")
+                            logger.debug(f"Excluding {', '.join(choices)}")
                             filtered_df = filtered_df[~(filtered_df[col].isin(choices))]
                         else:
                             filtered_df = filtered_df[filtered_df[col].isin(choices)]             
