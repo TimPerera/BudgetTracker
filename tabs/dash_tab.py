@@ -3,11 +3,13 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 
+FONT_SIZE=13
+
 def render_dash_tab(cfg, session):
     income_col, expense_col, savings_col, net_col, num_transactions_col = st.columns(5)
     df = session.data
     exclusions = ['Internal Transfer','Investment']
-    df = df[~(df['Category'].isin(exclusions))].reset_index()
+    df_filtered = df[~(df['Category'].isin(exclusions))].reset_index()
     metrics = load_metrics(df)
     with income_col:
         income = metrics.get('income','N/A')
@@ -25,17 +27,29 @@ def render_dash_tab(cfg, session):
         count = metrics.get('count','N/A')
         st.metric('Total Transactions', f'{count:,}')
 
-    pie_container, line_container = st.columns(2)
+    pie_container, bar_container, line_container = st.columns(3)
     with pie_container:
         # Load intereactive pie chart
-        render_piechart(df)
+        render_piechart(df_filtered)
 
+    with bar_container:
+        render_barchart(df_filtered)
     # Load Line Chart
-    # Income vs Expenses
+    # # Income vs Expenses
+    # line_container, _ = st.columns(2)
     with line_container:
-        render_linechart(df)
+        render_linechart(df_filtered)
     st.markdown('#')
     st.dataframe(df)
+
+def render_barchart(df):
+
+    dfg = df.groupby('Category')['Transaction Amount'].sum().reset_index(name='Total Amount').sort_values(by='Total Amount', ascending=False)
+    dfg['Total Amount'] = dfg['Total Amount'].abs()
+    dfg['Label'] = dfg['Total Amount'].apply(lambda x: f'${x:,.2f}')
+    fig = px.bar(dfg, y='Category',x='Total Amount')
+    fig.update_traces(text=dfg['Label'], textposition='outside', textfont=dict(size=FONT_SIZE))
+    st.plotly_chart(fig)
 
 def render_linechart(df):
     df['Type'] = df['Transaction Amount'].apply(lambda x: 'Expense' if x<0 else 'Income') 
@@ -92,7 +106,8 @@ def render_piechart(df, cutoff=0.8):
     fig = px.pie(pie_df, names=pie_df['Category'], values=pie_df['Total'])
     fig.update_traces(
         textposition = 'outside',
-        textinfo='label+percent'
+        textinfo='label+percent',
+        textfont=dict(size=FONT_SIZE)
     )
     fig.update_layout(showlegend=False)
     return st.plotly_chart(fig, key='pie')

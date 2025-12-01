@@ -30,11 +30,12 @@ def categorize_transactions(df, cfg):
                     if any([val in desc for val in values]):
                         match = key
                 # logger.debug(f'key:{key}, value:{values}, match:{match}')
-            logger.debug(f'{desc}.{match}. {key}')
+            logger.debug(f'Doordash:\nDesc:{desc}\nmatch:{match}\nkey:{key}')
             df.at[idx, 'Category'] = key if not match else match
             continue
         for category, keywords in cfg.get('categories', dict()).items():
             kws = [keyword.lower().strip() for keyword in keywords if isinstance(keyword, str)]
-            if any([kw in desc for kw in kws]):
+            if any([kw in desc for kw in kws]): 
+                # logger.debug(f'Desc:{desc}\n{category}')
                 df.at[idx, 'Category'] = category
     return df
