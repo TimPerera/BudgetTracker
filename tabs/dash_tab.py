@@ -49,7 +49,7 @@ def render_barchart(df):
     dfg['Label'] = dfg['Total Amount'].apply(lambda x: f'${x:,.2f}')
     fig = px.bar(dfg, y='Category',x='Total Amount')
     fig.update_traces(text=dfg['Label'], textposition='outside', textfont=dict(size=FONT_SIZE))
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
 def render_linechart(df):
     df['Type'] = df['Transaction Amount'].apply(lambda x: 'Expense' if x<0 else 'Income') 
