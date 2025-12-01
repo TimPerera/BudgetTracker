@@ -15,14 +15,27 @@ def update_categories(category, keyword, session, cfg):
     session.categories = cfg['categories']
     update_cfg(cfg)
 
-def categorize_transactions(df, session):
-    for category, keywords in session.categories.items():
-        kws = [keyword.lower().strip() for keyword in keywords]
-        for idx, row in df.iterrows():
-            desc = row['Description'].lower().strip()
-            
-            if any([kw in desc for kw in kws]):
-                if idx == 3:
-                    print(desc, kws)
+def mixed_categories(desc, cfg):
+    cfg.get
+
+def categorize_transactions(df, cfg):
+    
+    for idx, row in df.iterrows():
+        desc = row['Description'].lower().strip()
+
+        if 'doordash' in desc:
+            match = None
+            for _, map in cfg['categories']['Mixed'].items():
+                for key, values in map.items():    
+                    if any([val in desc for val in values]):
+                        match = key
+                # logger.debug(f'key:{key}, value:{values}, match:{match}')
+            logger.debug(f'Doordash:\nDesc:{desc}\nmatch:{match}\nkey:{key}')
+            df.at[idx, 'Category'] = key if not match else match
+            continue
+        for category, keywords in cfg.get('categories', dict()).items():
+            kws = [keyword.lower().strip() for keyword in keywords if isinstance(keyword, str)]
+            if any([kw in desc for kw in kws]): 
+                # logger.debug(f'Desc:{desc}\n{category}')
                 df.at[idx, 'Category'] = category
     return df

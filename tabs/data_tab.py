@@ -7,24 +7,20 @@ import streamlit as st
 from categories import categorize_transactions, update_categories
 from utils import logger
 
-def render_data_tab(file_paths, cfg, session):
+def render_data_tab(data, cfg, session):
     
     categories = session.categories
     # Load Data
-    data = load_data(file_paths, cfg, session)
-    session.orig_data = data.copy()
-
+    session.data = data.copy()
     # Load Filters
     modify = st.checkbox(label='Add Filters')
     modify_container = st.container()
-
     if modify:
         with modify_container:
-            data = render_modify_container(data, session)
-        
+            session.data = render_modify_container(session.data, session)
     # Display Data
     editable_df = st.data_editor(
-                            data, 
+                            session.data, 
                             column_config={
                                 'Category': st.column_config.SelectboxColumn(
                                     'Category',
@@ -36,18 +32,18 @@ def render_data_tab(file_paths, cfg, session):
                                 })
     data_btn = st.button('Apply Changes')
     if data_btn: # User has chosen to apply changes in categories.
-        mask = st.session_state.orig_data['Category'] != editable_df['Category']
+        mask = st.session_state.data['Category'] != editable_df['Category']
         for idx, row in editable_df[mask].iterrows():
             category, keyword = row['Category'], row['Description']
             if pd.isna(category):
                 continue
-            st.session_state.orig_data.at[idx, 'Category'] = category
+            st.session_state.data.at[idx, 'Category'] = category
             update_categories(category, keyword, session, cfg)
             categorize_transactions(editable_df, session)
         st.rerun()
-    return data
+    return session.data
 
-def load_data(file_paths, cfg, session):  
+def load_data(file_paths, cfg):  
     def clean_desc(desc):
         desc = desc.strip()
         if '[IN]' in desc:
@@ -55,7 +51,7 @@ def load_data(file_paths, cfg, session):
         if len(desc)==4:
             return desc
         else:
-            return desc[4:]  
+            return desc[4:]
     accounts = cfg.get('accounts')
     df_list = list()
     for fpath in file_paths:
@@ -64,7 +60,7 @@ def load_data(file_paths, cfg, session):
             ac_num_name_pat = r'.*/(\d{4})\.csv'
             match = re.search(ac_num_name_pat, fpath)
             ac_name = int(match.group(1))
-            raw_df['Account Name'] = accounts.get(ac_name, 'Dunno')
+            raw_df['Account Name'] = accounts.get(ac_name, 'No Name')
             raw_df['Description'] = raw_df['Description'].apply(clean_desc)
             raw_df['Category'] = None
             df_list.append(raw_df)  
@@ -78,54 +74,59 @@ def load_data(file_paths, cfg, session):
     raw_df.reset_index(inplace=True, drop=True)
     # raw_df['Transaction Type Code'] = raw_df['Description'].apply(lambda x: x[1:3])
     
-    return categorize_transactions(raw_df, session)
+    return categorize_transactions(raw_df, cfg)
 
 
 def render_modify_container(df, session):  
-    filtered_df = pd.DataFrame()
+    filtered_df = df
     # Find out what user wants to filter:
-    filt_cols = st.multiselect(label='Select Filters', options=df.columns)
+    filt_cols = st.multiselect(label='Select Filters', options=df.columns, key='main_filter')
     
     col1_2, col2_2 = st.columns(2)
     for col in filt_cols:
         # print(df[col].dtype)
-        if is_datetime64_any_dtype(df[col]):
+        if is_datetime64_any_dtype(filtered_df[col]):
             col1, col2, _, _= st.columns(4) # My workaround to deal with very large widgets    
             with col1:
                 start_dt = st.date_input(label='Select Start Date',
-                            min_value=df['Date Posted'].min(), 
-                            max_value=df['Date Posted'].max(), 
-                            value=df['Date Posted'].min())
+                            min_value=filtered_df['Date Posted'].min(), 
+                            max_value=filtered_df['Date Posted'].max(), 
+                            value=filtered_df['Date Posted'].min(), 
+                            key='start_date_filter')
             with col2:
                 end_dt = st.date_input(label='Select End Date',
                                     min_value=start_dt,
-                                    max_value=df['Date Posted'].max(),
-                                    value=df['Date Posted'].max())
-            filtered_df = df[df['Date Posted'].dt.date.between(start_dt, end_dt)]
+                                    max_value=filtered_df['Date Posted'].max(),
+                                    value=filtered_df['Date Posted'].max(), 
+                                    key='end_date_filter')
+            filtered_df = filtered_df[filtered_df['Date Posted'].dt.date.between(start_dt, end_dt)]
 
-        elif is_float_dtype(df[col]):
+        elif is_float_dtype(filtered_df[col]):
             col1, col2, _, _= st.columns(4) # My workaround to deal with very large widgets
             with col1:
-                slider_min, slider_max = st.slider(label=f'Select {col} range.',min_value=df[col].min(), max_value=df[col].max(), value=[df[col].min(), df[col].max()], format='$%0.2f')
-            filtered_df = df[df[col].between(slider_min, slider_max)]
+                slider_min, slider_max = st.slider(label=f'Select {col} range.',min_value=filtered_df[col].min(), max_value=filtered_df[col].max(), value=[filtered_df[col].min(), filtered_df[col].max()], format='$%0.2f', key='amount_filter')
+            filtered_df = filtered_df[filtered_df[col].between(slider_min, slider_max)]
 
-        elif is_object_dtype(df[col]):
+        elif is_object_dtype(filtered_df[col]):
             col1, col2, _, _= st.columns(4) # My workaround to deal with very large widgets
-            pattern = None
             with col1:
-                exclude = st.checkbox('Exclude')
+                exclude = st.checkbox('Exclude', key=f'exclude_opt-{col}')
                 if col=='Description':
-                    desc = st.text_input(label='Enter Description filter.')
+                    desc = st.text_input(label='Enter Description filter.', key='desc_filt')
                     if exclude:
-                        filtered_df = df[~(df[col].str.contains(desc, regex=True, case=False, na=False))]
+                        filtered_df = filtered_df[~(filtered_df[col].str.contains(desc, regex=True, case=False, na=False))]
                     else:
-                        filtered_df = df[df[col].str.contains(desc,regex=True, case=False, na=False)]
+                        filtered_df = filtered_df[filtered_df[col].str.contains(desc,regex=True, case=False, na=False)]
                 else:
-                    choices = st.multiselect(f'Select {col} Options', options=df[col].unique())
+                    choices = st.multiselect(f'Select {col} Options', options=filtered_df[col].unique(), key=f'object_filt-{col}')
                     if choices:
                         if exclude:
-                            filtered_df = df[~(df[col].isin(choices))]
+                            logger.debug(f"Excluding {', '.join(choices)}")
+                            filtered_df = filtered_df[~(filtered_df[col].isin(choices))]
                         else:
-                            filtered_df = df[df[col].isin(choices)]
-                    
-    return filtered_df if not filtered_df.empty else df
+                            filtered_df = filtered_df[filtered_df[col].isin(choices)]             
+    return filtered_df.reset_index(drop=True) if not filtered_df.empty else filtered_df
+
+
+
+    
