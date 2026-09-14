@@ -15,9 +15,6 @@ def update_categories(category, keyword, session, cfg):
     session.categories = cfg['categories']
     update_cfg(cfg)
 
-def mixed_categories(desc, cfg):
-    cfg.get
-
 def categorize_transactions(df, cfg):
     
     for idx, row in df.iterrows():
@@ -30,7 +27,7 @@ def categorize_transactions(df, cfg):
                     if any([val in desc for val in values]):
                         match = key
                 # logger.debug(f'key:{key}, value:{values}, match:{match}')
-            logger.debug(f'Doordash:\nDesc:{desc}\nmatch:{match}\nkey:{key}')
+            # logger.debug(f'Doordash:\nDesc:{desc}\nmatch:{match}\nkey:{key}')
             df.at[idx, 'Category'] = key if not match else match
             continue
         for category, keywords in cfg.get('categories', dict()).items():

@@ -28,7 +28,8 @@ def app(file_paths=None):
 
 if __name__=='__main__':
     files = [
-             'input/2866.csv', 
+            #  'input/statement-8.csv', 
+             'input/2866.csv',
              'input/5060.csv',
              'input/6781.csv',
              'input/8558.csv',

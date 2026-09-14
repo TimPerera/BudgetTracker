@@ -8,9 +8,9 @@ FONT_SIZE=13
 def render_dash_tab(cfg, session):
     income_col, expense_col, savings_col, net_col, num_transactions_col = st.columns(5)
     df = session.data
-    exclusions = ['Internal Transfer','Investment']
+    exclusions = ['Internal Transfer']
     df_filtered = df[~(df['Category'].isin(exclusions))].reset_index()
-    metrics = load_metrics(df)
+    metrics = load_metrics(df_filtered)
     with income_col:
         income = metrics.get('income','N/A')
         st.metric('Total Income', f'${income:,.2f}')
@@ -19,7 +19,7 @@ def render_dash_tab(cfg, session):
         st.metric('Total Expenses', f'${expense:,.2f}')
     with savings_col:
         saving = metrics.get('saving','N/A')
-        st.metric('Total Savings',f'${saving:,.2f}')
+        st.metric('Total Savings & Investments',f'${saving:,.2f}')
     with net_col:
         net = metrics.get('net','N/A')
         st.metric('Net Income', f'${net:,.2f}')       
@@ -73,9 +73,9 @@ def load_metrics(df):
     if 'categories' not in st.session_state.keys():
         logger.warning('Categories are not defined. Limited analytics available.')
     income   = df[(df['Transaction Amount']>0)]['Transaction Amount'].sum()
-    expense  = df[(df['Transaction Amount']<0)]['Transaction Amount'].abs().sum()
+    expense  = df[(df['Transaction Amount']<0)& (df['Category']!='Investment')]['Transaction Amount'].abs().sum()
     saving   = abs(df[df['Category']=='Investment']['Transaction Amount']).sum()
-    net      = income - expense
+    net      = income - expense - saving
     count    = len(df)
 
     metrics = {

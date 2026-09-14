@@ -57,9 +57,12 @@ def load_data(file_paths, cfg):
     for fpath in file_paths:
         raw_df = pd.read_csv(fpath,skiprows=6, names=['Bank Card','Transaction Type','Date Posted', 'Transaction Amount','Description'])
         if not raw_df.empty:
+            logger.debug(f"fpath:{fpath}")
             ac_num_name_pat = r'.*/(\d{4})\.csv'
             match = re.search(ac_num_name_pat, fpath)
             ac_name = int(match.group(1))
+            # print(f"fpath: {fpath}, {match}:ac_num_name_pat")
+            logger.debug(f"fpath:{fpath}. ac_name:{ac_name}. accounts: {accounts}")
             raw_df['Account Name'] = accounts.get(ac_name, 'No Name')
             raw_df['Description'] = raw_df['Description'].apply(clean_desc)
             raw_df['Category'] = None
