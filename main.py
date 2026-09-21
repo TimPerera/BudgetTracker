@@ -1,9 +1,11 @@
 import streamlit as st
 
+from database import create_database
 from utils import load_saved_data
 from tabs.data_tab import render_data_tab, load_data
 from tabs.settings_tab import render_settings_tab
 from tabs.dash_tab import render_dash_tab
+
 
 cfg = load_saved_data()
 session = st.session_state
